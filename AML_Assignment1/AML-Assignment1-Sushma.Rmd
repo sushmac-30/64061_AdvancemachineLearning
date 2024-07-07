@@ -1,0 +1,193 @@
+---
+title: "AML Neural Networks"
+author: "Sushma"
+date: "2024-07-07"
+output: html_document
+---
+
+```{r}
+# Load Keras, Tensorflow, ggplot for deep Learning, Machine learning computation and Data visualization respectively.
+library(keras)
+library(tensorflow)
+library(ggplot2)
+```
+
+```{r}
+# Load the IMDb dataset with a vocabulary size limited to 10,000 words.
+imdb_data <- dataset_imdb(num_words = 10000)
+
+# Extract training data and labels from the IMDb dataset.
+train_data <- imdb_data$train$x
+train_labels <- imdb_data$train$y
+
+# Extract test data and labels from the IMDb dataset.
+test_data <- imdb_data$test$x
+test_labels <- imdb_data$test$y
+
+```
+
+```{r}
+# Prepare the data
+vectorize_sequences <- function(sequences, dimension = 10000) {
+  results <- matrix(0, nrow = length(sequences), ncol = dimension)
+  for (i in seq_along(sequences)) {
+    results[i, sequences[[i]]] <- 1
+  }
+  results
+}
+
+# Vectorize the training and test data sequences
+x_train <- vectorize_sequences(train_data)
+x_test <- vectorize_sequences(test_data)
+
+# Convert train and test labels to matrix format
+y_train <- as.matrix(train_labels)
+y_test <- as.matrix(test_labels)
+
+```
+
+```{r}
+# 1. Number of Hidden Layers
+
+# One hidden layer model
+model_one_hidden <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = 'relu', input_shape = c(10000)) %>%  # First hidden layer with 16 units and ReLU activation function
+  layer_dense(units = 1, activation = 'sigmoid')  # Output layer with 1 unit (binary classification) and sigmoid activation function
+
+# Three hidden layers model
+model_three_hidden <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = 'relu', input_shape = c(10000)) %>%  # First hidden layer with 16 units and ReLU activation function
+  layer_dense(units = 16, activation = 'relu') %>%  # Second hidden layer with 16 units and Relu activation function
+  layer_dense(units = 16, activation = 'relu') %>%  # Third hidden layer with 16 units and Relu activation function
+  layer_dense(units = 1, activation = 'sigmoid')  # Output layer with 1 unit (binary classification) and sigmoid activation function
+
+```
+
+```{r}
+# 2. Number of Hidden Units
+
+# Model with 32 hidden units
+model_32_units <- keras_model_sequential() %>%
+  layer_dense(units = 32, activation = 'relu', input_shape = c(10000)) %>%  # Hidden layer with 32 units and ReLU activation function
+  layer_dense(units = 1, activation = 'sigmoid')  # Output layer with 1 unit (binary classification) and sigmoid activation function
+
+# Model with 64 hidden units
+model_64_units <- keras_model_sequential() %>%
+  layer_dense(units = 64, activation = 'relu', input_shape = c(10000)) %>%  # Hidden layer with 64 units and ReLU activation function
+  layer_dense(units = 1, activation = 'sigmoid')  # Output layer with 1 unit (binary classification) and sigmoid activation function
+
+```
+
+```{r}
+# 3. Loss Function
+# Mean Squared Error (MSE) loss function
+# Define a sequential Keras model
+model_mse_loss <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = 'relu', input_shape = c(10000)) %>%  # Hidden layer with 16 units and ReLU activation function
+  layer_dense(units = 1, activation = 'sigmoid')  # Output layer with 1 unit (binary classification) and sigmoid activation function
+
+# Compile the model
+model_mse_loss %>% compile(optimizer = 'rmsprop',   # RMSprop optimizer
+                           loss = 'mse',            # Mean Squared Error (MSE) loss function
+                           metrics = c('accuracy'))  # Accuracy metric for evaluation
+
+```
+
+```{r}
+# 4. Activation Function
+# tanh activation function
+# Define a sequential Keras model with tanh activation
+model_tanh_activation <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = 'tanh', input_shape = c(10000)) %>%  # Hidden layer with 16 units and tanh activation function
+  layer_dense(units = 1, activation = 'sigmoid')  # Output layer with 1 unit (binary classification) and sigmoid activation function
+
+```
+
+```{r}
+# 5. Regularization and Dropout
+# L2 Regularization
+# Load the Keras library for deep learning
+library(keras)
+
+# Regularization with L2 (ridge) penalty
+model_l2_regularization <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = 'relu', input_shape = c(10000), kernel_regularizer = regularizer_l2(0.001)) %>%  # Hidden layer with 16 units, ReLU activation, and L2 regularization (0.001)
+  layer_dense(units = 1, activation = 'sigmoid')  # Output layer with 1 unit (binary classification) and sigmoid activation function
+
+# Dropout regularization
+model_dropout <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = 'relu', input_shape = c(10000)) %>%  # Hidden layer with 16 units and ReLU activation function
+  layer_dropout(rate = 0.5) %>%  # Dropout layer with dropout rate of 0.5
+  layer_dense(units = 1, activation = 'sigmoid')  # Output layer with 1 unit (binary classification) and sigmoid activation function
+
+```
+
+```{r}
+# Function to create, compile, and fit the model# Function to compile and fit a Keras model
+compile_and_fit_model <- function(model, x_train, y_train, x_val, y_val, epochs = 20, batch_size = 512) {
+  # Compile the model with optimizer, loss function, and metrics
+  model %>% compile(optimizer = 'rmsprop',                 # Optimizer: RMSprop
+                    loss = 'binary_crossentropy',          # Loss function: Binary cross-entropy
+                    metrics = c('accuracy'))               # Metrics for evaluation: Accuracy
+  
+  # Fit the model on training data, validating on validation data
+  history <- model %>% fit(x_train, y_train,               # Training data and labels
+                           epochs = epochs,                # Number of epochs
+                           batch_size = batch_size,        # Batch size
+                           validation_data = list(x_val, y_val),  # Validation data and labels
+                           verbose = 0)                    # Verbosity level (0: silent, 1: progress bar, 2: one line per epoch)
+  
+  # Return training history
+  history
+}
+```
+
+```{r}
+# Function to plot the training and validation accuracy
+# Function to plot training and validation accuracy from model history
+plot_history <- function(history, label) {
+  # Extract training and validation accuracy from history object
+  acc <- history$metrics$accuracy
+  val_acc <- history$metrics$val_accuracy
+  
+  # Create sequence of epochs for x-axis
+  epochs <- seq_along(acc)
+  
+  # Plot training accuracy in blue
+  plot(epochs, acc, type = 'l', col = 'blue', xlab = 'Epochs', ylab = 'Accuracy', 
+       main = paste('Training and Validation Accuracy (', label, ')'))
+  
+  # Add validation accuracy to the plot in red
+  lines(epochs, val_acc, type = 'l', col = 'red')
+  
+  # Add legend to differentiate between training and validation accuracy
+  legend('topright', 
+         legend = c(paste('Training Accuracy (', label, ')'), paste('Validation Accuracy (', label, ')')), 
+         col = c('blue', 'red'), 
+         lty = 1:1)
+}
+
+```
+
+```{r}
+# Create a list of models
+models_list <- list(model_one_hidden, model_three_hidden, model_32_units, model_64_units, model_mse_loss, model_tanh_activation, model_l2_regularization, model_dropout)
+
+# Loop through each model, print summary, compile, fit, and plot
+for (i in seq_along(models_list)) {
+  label <- paste('Model', i)
+  
+  # Print model summary
+  cat('\n\n', label, 'Summary:')
+  summary(models_list[[i]])
+  
+  # Compile and fit the model
+  history <- compile_and_fit_model(models_list[[i]], x_train, y_train, x_test, y_test)
+  
+  # Plot the training and validation accuracy
+  plot_history(history, label)
+  
+  # Clear session to release memory
+  gc()
+}
+```
